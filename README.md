@@ -29,6 +29,21 @@
   - [Colección Postman](#colección-postman)
   - [Notas y mejoras posibles](#notas-y-mejoras-posibles)
 
+
+# Sección 1 - Arquitectura del Sistema de Juego Multijugador
+
+## Diagrama General de Arquitectura
+<p align="center">
+  <img src="assets/aws.jpg" width="700" alt="Diagrama AWS">
+</p>
+
+## Diagrama de Componentes
+<p align="center">
+  <img src="assets/component.jpg" width="700" alt="Diagrama de Componentes">
+</p>
+
+---
+
 ## Diseño Técnico y Arquitectural
 
 1. **Inicio de sesión:** El jugador obtiene su identidad en Cognito.  
@@ -284,20 +299,6 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 ```
 
 > Las llamadas internas entre nodos usan la cabecera `X-Internal-Token: <INTERNAL_TOKEN>` y no requieren intervención del cliente.
-
----
-
-# Sección 1 - Arquitectura del Sistema de Juego Multijugador
-
-## Diagrama General de Arquitectura
-<p align="center">
-  <img src="assets/aws.jpg" width="700" alt="Diagrama AWS">
-</p>
-
-## Diagrama de Componentes
-<p align="center">
-  <img src="assets/component.jpg" width="700" alt="Diagrama de Componentes">
-</p>
 
 ---
 
