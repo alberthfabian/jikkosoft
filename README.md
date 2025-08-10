@@ -12,10 +12,10 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
 - [Ejecución con Docker Compose (clúster de 3 nodos)](#ejecución-con-docker-compose-clúster-de-3-nodos)
 - [Endpoints principales](#endpoints-principales)
 
-- [Arquitectura del Sistema de Juego Multijugador](#arquitectura-del-sistema-de-juego-multijugador)
+- [Sección 1 - Arquitectura del Sistema de Juego Multijugador](#arquitectura-del-sistema-de-juego-multijugador)
   - [Diagrama General de Arquitectura](#diagrama-general-de-arquitectura)
   - [Diagrama de Componentes](#diagrama-de-componentes)
-  - [Sección 1 - Diseño Técnico y Arquitectural](#sección-1---flujo-de-la-arquitectura)
+  - [Diseño Técnico y Arquitectural](#sección-1---flujo-de-la-arquitectura)
   - [Alta concurrencia y baja latencia](#alta-concurrencia-y-baja-latencia)
   - [Consistencia y fiabilidad de los datos](#consistencia-y-fiabilidad-de-los-datos)
   - [Escalabilidad y tolerancia a fallos](#escalabilidad-y-tolerancia-a-fallos)
@@ -26,13 +26,13 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
   - [Tolerancia a fallos](#tolerancia-a-fallos)
   - [Medidas de seguridad](#medidas-de-seguridad)
 
-- [sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
-- [Patrones de diseño aplicados](#patrones-de-diseño-aplicados)
-- [¿Cómo funciona el caché distribuido?](#cómo-funciona-el-caché-distribuido)
-- [Cómo este proyecto cumple los objetivos](#cómo-este-proyecto-cumple-los-objetivos)
-- [Variables de entorno](#variables-de-entorno)
-- [Colección Postman](#colección-postman)
-- [Notas y mejoras posibles](#notas-y-mejoras-posibles)
+- [Sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
+  - [Patrones de diseño aplicados](#patrones-de-diseño-aplicados)
+  - [¿Cómo funciona el caché distribuido?](#cómo-funciona-el-caché-distribuido)
+  - [Cómo este proyecto cumple los objetivos](#cómo-este-proyecto-cumple-los-objetivos)
+  - [Variables de entorno](#variables-de-entorno)
+  - [Colección Postman](#colección-postman)
+  - [Notas y mejoras posibles](#notas-y-mejoras-posibles)
 
 
 ## Tecnologías
@@ -183,7 +183,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 
 ---
 
-# Arquitectura del Sistema de Juego Multijugador
+# Sección 1 - Arquitectura del Sistema de Juego Multijugador
 
 ## Diagrama General de Arquitectura
 <p align="center">
@@ -197,7 +197,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 
 ---
 
-## Sección 1 - Diseño Técnico y Arquitectural
+## Diseño Técnico y Arquitectural
 
 1. **Inicio de sesión:** El jugador obtiene su identidad en Cognito.  
 2. **Lista de mundos:** El cliente pide a API Gateway la lista de partidas; Lambda consulta DynamoDB y devuelve la información.  
@@ -301,7 +301,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 - Mínima recolección de datos personales.  
 
 
-## Sección 2 - Desafío de Codificación
+# Sección 2 - Desafío de Codificación
 
 ### Patrones de diseño aplicados
 
