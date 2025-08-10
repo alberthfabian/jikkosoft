@@ -1,0 +1,63 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtualenvs
+.venv/
+venv/
+ENV/
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dll
+*.dylib
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# MyPy / type checkers
+.mypy_cache/
+.dmypy.json
+.dmypy/
+.pyre/
+.pytype/
+
+# Logs
+*.log
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# --- Project specific ---
+# SQLite databases (persistencia local por nodo)
+data/*.db
+data/*/*.db
+
+# Docker build artifacts
+*.tar
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Secrets (si llegaran a existir)
+.env
+.env.*

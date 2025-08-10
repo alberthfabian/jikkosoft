@@ -1,0 +1,329 @@
+{
+  "info": {
+    "name": "Jikkosoft Cache Demo",
+    "_postman_id": "c5a9a7f6-0b2c-4f1e-9a55-4c9b6da8a9b1",
+    "description": "Colección para probar el caché distribuido (3 nodos). Incluye health checks, operaciones básicas (PUT/GET/DELETE), prueba de conflicto por versión y TTL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Node 1 Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/_health",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "_health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Node 2 Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node2}}/_health",
+              "host": [
+                "{{node2}}"
+              ],
+              "path": [
+                "_health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Node 3 Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node3}}/_health",
+              "host": [
+                "{{node3}}"
+              ],
+              "path": [
+                "_health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache - Básico",
+      "item": [
+        {
+          "name": "PUT key en Node1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": { \"x\": 1 },\n  \"version\": {{version}},\n  \"ttl_ms\": {{ttl_ms}}\n}"
+            },
+            "url": {
+              "raw": "{{node1}}/cache/{{key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET key en Node1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/cache/{{key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET key en Node2 (replicado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node2}}/cache/{{key}}",
+              "host": [
+                "{{node2}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET key en Node3 (replicado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node3}}/cache/{{key}}",
+              "host": [
+                "{{node3}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT conflicto (versión menor o igual)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": { \"x\": 2 },\n  \"version\": {{conflict_version}}\n}"
+            },
+            "url": {
+              "raw": "{{node1}}/cache/{{key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Debe responder 409 en conflicto de versión\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE key en Node1",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/cache/{{key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET key en Node1 (404 tras delete)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/cache/{{key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{key}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Debe responder 404 tras delete\", function () {",
+                  "  pm.expect([404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cache - TTL",
+      "item": [
+        {
+          "name": "PUT key con TTL corto en Node1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": { \"temp\": true },\n  \"version\": 1,\n  \"ttl_ms\": 200\n}"
+            },
+            "url": {
+              "raw": "{{node1}}/cache/{{ttl_key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{ttl_key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET inmediato (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/cache/{{ttl_key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{ttl_key}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET tras expiración (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node1}}/cache/{{ttl_key}}",
+              "host": [
+                "{{node1}}"
+              ],
+              "path": [
+                "cache",
+                "{{ttl_key}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Espera manual: ejecuta esta request unos 300-400ms después de la anterior",
+                  "// Postman no ejecuta sleeps entre requests por defecto"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Debe responder 404 cuando expiró\", function () {",
+                  "  pm.expect([404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "node1", "value": "http://localhost:8001", "type": "default" },
+    { "key": "node2", "value": "http://localhost:8002", "type": "default" },
+    { "key": "node3", "value": "http://localhost:8003", "type": "default" },
+    { "key": "key", "value": "k1", "type": "default" },
+    { "key": "ttl_key", "value": "temp", "type": "default" },
+    { "key": "version", "value": "1", "type": "default" },
+    { "key": "ttl_ms", "value": "30000", "type": "default" },
+    { "key": "conflict_version", "value": "1", "type": "default" }
+  ]
+}

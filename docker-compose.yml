@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  cache-node-1:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - NODE_ID=node1
+      - NODES=http://cache-node-1:8000,http://cache-node-2:8000,http://cache-node-3:8000
+      - INTERNAL_TOKEN=secret
+    volumes:
+      - ./data/node1:/app/data
+
+  cache-node-2:
+    build: .
+    ports:
+      - "8002:8000"
+    environment:
+      - NODE_ID=node2
+      - NODES=http://cache-node-1:8000,http://cache-node-2:8000,http://cache-node-3:8000
+      - INTERNAL_TOKEN=secret
+    volumes:
+      - ./data/node2:/app/data
+
+  cache-node-3:
+    build: .
+    ports:
+      - "8003:8000"
+    environment:
+      - NODE_ID=node3
+      - NODES=http://cache-node-1:8000,http://cache-node-2:8000,http://cache-node-3:8000
+      - INTERNAL_TOKEN=secret
+    volumes:
+      - ./data/node3:/app/data
