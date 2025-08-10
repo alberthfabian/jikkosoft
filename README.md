@@ -27,6 +27,7 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
   - [Medidas de seguridad](#medidas-de-seguridad)
 
 - [sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
+- [Patrones de diseño aplicados](#patrones-de-diseño-aplicados)
 - [¿Cómo funciona el caché distribuido?](#cómo-funciona-el-caché-distribuido)
 - [Cómo este proyecto cumple los objetivos](#cómo-este-proyecto-cumple-los-objetivos)
 - [Variables de entorno](#variables-de-entorno)
