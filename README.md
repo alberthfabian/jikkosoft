@@ -13,6 +13,7 @@
   - [Mecanismos de escalabilidad](#mecanismos-de-escalabilidad)
   - [Tolerancia a fallos](#tolerancia-a-fallos)
   - [Medidas de seguridad](#medidas-de-seguridad)
+  - [Patrones de arquitectura enfocados a la nube](#patrones-de-arquitectura-enfocados-a-la-nube)
   - [Serverless Architecture](#serverless-architecture)
   - [Event-Driven con Scheduler (Cron)](#event-driven-con-scheduler-cron)
   - [Separación Control Plane vs Data Plane](#separación-control-plane-vs-data-plane)
@@ -24,6 +25,7 @@
   - [Dead-Letter Queue + Retries](#dead-letter-queue--retries)
   - [Defense in Depth (Seguridad en Capas)](#defense-in-depth-seguridad-en-capas)
   - [Observability Pattern](#observability-pattern)
+  - [Pilares de AWS Well-Architected Framework](#pilares-de-aws-well-architected-framework)
   - [1. Excelencia Operativa](#1-excelencia-operativa)
   - [2. Seguridad](#2-seguridad)
   - [3. Fiabilidad](#3-fiabilidad)
@@ -166,6 +168,10 @@
 - Mínima recolección de datos personales.  
 
 
+## Patrones de arquitectura enfocados a la nube
+
+Los siguientes patrones se aplican para lograr baja latencia, alta disponibilidad y operación simple a escala en AWS:
+
 # Serverless Architecture
 
 Lógica en funciones administradas (sin servidores propios) y servicios 100% gestionados.
@@ -245,6 +251,10 @@ Monitoreo, métricas y trazas centralizadas.
 - CloudWatch (logs/métricas) y X-Ray (tracing); Game servers envían métricas.
 
 ---
+
+## Pilares de AWS Well-Architected Framework
+
+Los 6 pilares guían las decisiones de diseño y operación:
 
 ## 1. Excelencia Operativa
 
