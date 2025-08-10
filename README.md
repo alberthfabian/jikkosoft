@@ -13,6 +13,24 @@
   - [Mecanismos de escalabilidad](#mecanismos-de-escalabilidad)
   - [Tolerancia a fallos](#tolerancia-a-fallos)
   - [Medidas de seguridad](#medidas-de-seguridad)
+  - [Serverless Architecture](#serverless-architecture)
+  - [Event-Driven con Scheduler (Cron)](#event-driven-con-scheduler-cron)
+  - [Separación Control Plane vs Data Plane](#separación-control-plane-vs-data-plane)
+  - [API Gateway Pattern (y Gateway Aggregation)](#api-gateway-pattern-y-gateway-aggregation)
+  - [Funciones con Responsabilidad Única (FaaS decomposition)](#funciones-con-responsabilidad-única-faas-decomposition)
+  - [CQRS “lite” (Segregación de Lectura/Escritura)](#cqrs-lite-segregación-de-lecturaescritura)
+  - [Multi-Region Deployment](#multi-region-deployment)
+  - [Read-Local / Replicate-Global (Eventual Consistency)](#read-local--replicate-global-eventual-consistency)
+  - [Dead-Letter Queue + Retries](#dead-letter-queue--retries)
+  - [Defense in Depth (Seguridad en Capas)](#defense-in-depth-seguridad-en-capas)
+  - [Observability Pattern](#observability-pattern)
+  - [1. Excelencia Operativa](#1-excelencia-operativa)
+  - [2. Seguridad](#2-seguridad)
+  - [3. Fiabilidad](#3-fiabilidad)
+  - [4. Eficiencia en el Rendimiento](#4-eficiencia-en-el-rendimiento)
+  - [5. Optimización de Costos](#5-optimización-de-costos)
+  - [6. Sostenibilidad](#6-sostenibilidad)
+  - [Estimación de costos mensuales (USD)](#estimación-de-costos-mensuales-usd)
 
 - [Sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
   - [Cache Distribuido con FastAPI, SQLite y Docker](#cache-distribuido-con-fastapi-sqlite-y-docker)
@@ -148,6 +166,178 @@
 - Mínima recolección de datos personales.  
 
 
+# Serverless Architecture
+
+Lógica en funciones administradas (sin servidores propios) y servicios 100% gestionados.
+- AWS Lambda (ListWorlds, JoinWorld, WorldManager), API Gateway, DynamoDB, Cognito, EventBridge, CloudWatch.
+
+---
+
+## Event-Driven con Scheduler (Cron)
+
+Procesos que se ejecutan por eventos; aquí, un temporizador.
+- EventBridge dispara WorldManager cada minuto para orquestar mundos/sesiones.
+
+---
+
+## Separación Control Plane vs Data Plane
+
+Un plano de control que crea/gestiona sesiones y un plano de datos que mueve el tráfico de juego en tiempo real.
+- Control plane: API Gateway + Lambdas + DynamoDB.
+- Data plane: cliente conecta directo a GameLift por TCP.
+
+---
+
+## API Gateway Pattern (y Gateway Aggregation)
+
+Un único punto de entrada HTTP que enruta a múltiples funciones/servicios.
+- Amazon API Gateway exponiendo ListWorlds y JoinWorld bajo la misma API.
+
+---
+
+## Funciones con Responsabilidad Única (FaaS decomposition)
+
+Dividir la lógica en funciones pequeñas y enfocadas.
+- ListWorlds (lee mundos), JoinWorld (une y crea player session), WorldManager (gestiona/arranca mundos).
+
+---
+
+## CQRS “lite” (Segregación de Lectura/Escritura)
+
+Separar consultas de comandos sin infraestructura adicional compleja.
+- ListWorlds (lectura) vs JoinWorld/WorldManager (escritura/actualización).
+
+---
+
+## Multi-Region Deployment
+
+Desplegar y replicar datos en varias regiones para baja latencia/alta disponibilidad.
+- DynamoDB Global Tables (WorldConfiguration, WorldSessions, WorldPlayerData) y GameLift multi-Region fleet.
+- Persiste/consulta en la región cercana; replica globalmente.
+
+---
+
+## Read-Local / Replicate-Global (Eventual Consistency)
+
+Leer/escribir en la región local y replicar a las demás (aceptando consistencia eventual).
+- Dónde se ve: comportamiento nativo de DynamoDB Global Tables usado por Lambdas y GameLift.
+
+---
+
+## Dead-Letter Queue + Retries
+
+Reintentos automáticos y, si fallan, envío a una cola de “cartas muertas” para inspección/recuperación.
+- SQS (DLQ) conectado a WorldManager en caso de fallo; Lambda hace retry/backoff.
+- “On failure” desde WorldManager a SQS.
+
+---
+
+## Defense in Depth (Seguridad en Capas)
+
+Múltiples barreras en distintas capas.
+- Shield (DDoS) + CloudFront (edge) + WAF (reglas) + Cognito (identidad) + IAM (permisos finos).
+
+---
+
+## Observability Pattern
+
+Monitoreo, métricas y trazas centralizadas.
+- CloudWatch (logs/métricas) y X-Ray (tracing); Game servers envían métricas.
+
+---
+
+## 1. Excelencia Operativa
+
+Que todo se pueda operar y actualizar sin interrumpir el juego.
+- Aquí se usa AWS CDK / CloudFormation para desplegar y actualizar la infraestructura automáticamente.
+- Cuando se actualiza la flota de Amazon GameLift, se crea una flota nueva, se prueba y recién después se apaga la anterior, evitando cortes a los jugadores.
+
+---
+
+## 2. Seguridad
+
+Que los jugadores y sistemas estén protegidos en todo momento.
+- Amazon Cognito e IAM controlan quién puede acceder a las APIs.
+- Solo solicitudes autenticadas pasan por API Gateway.
+- Shield y WAF protegen contra ataques en la red y tráfico malicioso.
+
+---
+
+## 3. Fiabilidad
+
+Que el juego siga funcionando incluso si algo falla.
+- Si un servidor de juego cae, GameLift lanza uno nuevo con los mismos datos del mundo (almacenados en DynamoDB).
+- DynamoDB Global Tables mantiene los datos replicados para que estén siempre disponibles.
+
+---
+
+## 4. Eficiencia en el Rendimiento
+
+Que los jugadores tengan la menor latencia posible y el juego responda rápido.
+- GameLift conecta al cliente directo por TCP al servidor más cercano.
+- Servidores distribuidos en varias regiones para reducir la distancia física y el retardo.
+
+---
+
+## 5. Optimización de Costos
+
+Pagar solo por lo que realmente usas.
+- Lambdas, API Gateway y DynamoDB escalan según el tráfico.
+- GameLift ajusta la cantidad de servidores activos según la cantidad de jugadores, evitando pagar por servidores vacíos.
+
+---
+
+## 6. Sostenibilidad
+
+Reducir el impacto ambiental usando solo los recursos necesarios.
+- Servicios administrados y sin servidor (serverless) que solo consumen recursos cuando hay actividad.
+- Se ejecuta lo justo y necesario para la carga de jugadores en cada momento.
+
+---
+
+## Estimación de costos mensuales (USD)
+
+Se tomó como base un escenario de referencia (≈1.500 usuarios concurrentes CCU, 150 jugadores por mundo, sesiones de 15 min). Esto da un estimado mensual orientativo en `us-east-1`.
+
+Supuestos clave:
+- 6k req/h a ListWorlds y 6k req/h a JoinWorld (12k req/h totales)
+- WorldManager cada 1 min
+- 5 instancias C5.xlarge en GameLift (2 procesos por instancia)
+- 40 métricas personalizadas y ~100 MB/h de logs
+- Tablas DynamoDB Global Tables (lecturas/escrituras pequeñas ~1 KB)
+
+| Componente | Supuesto de uso mensual (resumen) | Costo aprox/mes |
+| --- | --- | --- |
+| API Gateway – ListWorlds | 6k req/h | $4.38 |
+| Lambda – ListWorlds (128 MB) | 6k inv/h | $10.01 |
+| DynamoDB – lecturas (ListWorlds) | 6k lect/h (~1 KB) | $0.55 |
+| API Gateway – JoinWorld | 6k req/h | $4.38 |
+| Lambda – JoinWorld (128 MB) | 6k inv/h | $10.01 |
+| DynamoDB – escrituras (JoinWorld) | 6k esc/h (~1 KB) | $5.47 |
+| EventBridge (regla) | 60 eventos/h | $0.00 |
+| Lambda – WorldManager (512 MB, ~5 s) | 60 inv/h | $1.83 |
+| DynamoDB – R/W (WorldManager) | lect 60/h + esc 600/h | $0.56 |
+| Accesos PlayerData (Global Tables) | 6k lect/h + 18k esc/h | $16.98 |
+| GameLift – cómputo | 5× C5.xlarge | $847.16 |
+| GameLift – transferencia | ~7.5 MB/s totales | $1,726.55 |
+| CloudWatch Logs | ~100 MB/h | $36.32 |
+| CloudWatch Métricas | ~40 métricas | $12.00 |
+| DynamoDB – almacenamiento | ~5.4 GB | $1.38 |
+| Cognito Identity Pool | Identidades federadas | $0.00 |
+| CloudFront (frente a API) | 8.6 M req/mes, respuestas pequeñas | ~$4.00 |
+| AWS WAF (1 ACL, ~10 reglas) | 8.6 M req/mes | ~$20.00 |
+| AWS X-Ray | muestreo básico/trazas bajas | ~$3.00 |
+| SQS – DLQ | fallos esporádicos | ~$1.00 |
+| AWS Shield Standard / IAM | — | $0.00 |
+
+**Total mensual aproximado:** $2,722.56  
+**Costo por CCU (≈1,500):** ~$1.82/CCU/mes
+
+Notas:
+- Los grandes conductores del costo son GameLift (cómputo) y la transferencia de datos.
+- WAF/CloudFront/X-Ray/SQS son relativamente pequeños con este patrón de tráfico.
+- Si el tráfico real difiere (más lecturas/escrituras, otras regiones, tamaño de mensajes, más instancias), los números cambian aproximadamente de forma lineal.
+
 # Sección 2 - Desafío de Codificación
 
 # Cache Distribuido con FastAPI, SQLite y Docker
@@ -164,16 +354,17 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
 - Pytest (tests)
 
 ## Estructura
-- `server/app_factory.py`: Factoría de la app (`create_app`) y definición de endpoints. Hace el wiring de `CacheService` + `CacheRepository` + `ConflictResolutionStrategy` y configura la replicación.
-- `server/main.py`: Punto de entrada. Crea la app vía la factoría y reexporta `replicate_to_others` para facilitar tests (monkeypatch).
-- `server/services/cache_service.py`: Servicio de dominio. TTL/expiración, versionado (LWW), cache en memoria y disparo de replicación.
-- `server/infrastructure/sqlite_repository.py`: Implementación de `CacheRepository` usando SQLite (guardar/cargar/borrar, parseo de fechas).
-- `server/domain/repositories.py`: Interfaces de repositorios (p. ej., `CacheRepository`).
-- `server/domain/conflict_resolution.py`: Estrategia de resolución de conflictos (por defecto `LastWriterWinsByVersion`).
-- `server/utils/replication.py`: Replicación HTTP asíncrona a otros nodos, con `X-Internal-Token` y autoexclusión por URL propia.
-- `server/persistence.py`: Inicialización de la base (`init_db`) y utilidades de acceso directo (helpers) a SQLite.
-- `server/config.py`: Configuración (variables de entorno, rutas internas, path de la base de datos).
-- `server/schemas/cache_item.py`: Modelo Pydantic de entrada para ítems del caché.
+- `app/app_factory.py`: Factoría de la app (`create_app`) y definición de endpoints. Hace el wiring de `CacheService` + `CacheRepository` + `ConflictResolutionStrategy` y configura la replicación.
+- `app/main.py`: Punto de entrada. Crea la app vía la factoría y reexporta `replicate_to_others` para facilitar tests (monkeypatch).
+- `app/services/cache_service.py`: Servicio de dominio. TTL/expiración, versionado (LWW), cache en memoria y disparo de replicación.
+- `app/infrastructure/sqlite_repository.py`: Implementación de `CacheRepository` usando SQLite (guardar/cargar/borrar, parseo de fechas).
+- `app/domain/repositories.py`: Interfaces de repositorios (p. ej., `CacheRepository`).
+- `app/domain/conflict_resolution.py`: Estrategia de resolución de conflictos (por defecto `LastWriterWinsByVersion`).
+- `app/utils/replication.py`: Replicación HTTP asíncrona a otros nodos, con `X-Internal-Token` y autoexclusión por URL propia.
+- `app/persistence.py`: Inicialización de la base (`init_db`) y utilidades de acceso directo (helpers) a SQLite.
+- `app/config.py`: Configuración (variables de entorno, rutas internas, path de la base de datos).
+- `app/schemas/cache_item.py`: Modelo Pydantic de entrada para ítems del caché.
+- `app/tests/`: Pruebas con Pytest. Ejecuta `pytest -q` desde la raíz del proyecto.
 - `docker-compose.yml`: Define 3 nodos del clúster
 - `Dockerfile`: Imagen base Python 3.11 con app y dependencias
 - `postman/cache-demo-collection.json`: Colección para probar
@@ -204,7 +395,7 @@ pip install -r requirements.txt
 
 ### 3) Ejecutar la API
 ```bash
-uvicorn server.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 - Documentación interactiva: `http://localhost:8001/docs`
 
@@ -213,7 +404,7 @@ uvicorn server.main:app --reload --host 0.0.0.0 --port 8000
 pytest -q
 ```
 
-> Nota: el proyecto inicializa la base de datos al importar `server/persistence.py`, por lo que los tests funcionan sin eventos de startup.
+> Nota: el proyecto inicializa la base de datos al importar `app/persistence.py`, por lo que los tests funcionan sin eventos de startup.
 
 ---
 
@@ -310,28 +501,28 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 ### Patrones de diseño aplicados
 
 - Repository (Repositorio)
-  - Interfaz: `server/domain/repositories.py` → `CacheRepository`.
-  - Implementación: `server/infrastructure/sqlite_repository.py` → `SQLiteCacheRepository`.
+  - Interfaz: `app/domain/repositories.py` → `CacheRepository`.
+  - Implementación: `app/infrastructure/sqlite_repository.py` → `SQLiteCacheRepository`.
   - Propósito: desacoplar la persistencia de la lógica; permite cambiar SQLite por otra tecnología (p. ej., Redis) sin tocar el servicio o los endpoints.
 
 - Service / Fachada
-  - Archivo: `server/services/cache_service.py` → `CacheService`.
+  - Archivo: `app/services/cache_service.py` → `CacheService`.
   - Responsabilidades: TTL y expiración, control de versiones (LWW), acceso al repositorio y disparo de replicación. Mantiene el mapa en memoria (`key -> { value, version, expires_at }`).
   - Beneficio: los endpoints quedan finos y la lógica de dominio es fácilmente testeable.
 
 - Strategy (Estrategia) para resolución de conflictos
-  - Interfaz: `server/domain/conflict_resolution.py` → `ConflictResolutionStrategy`.
+  - Interfaz: `app/domain/conflict_resolution.py` → `ConflictResolutionStrategy`.
   - Implementación por defecto: `LastWriterWinsByVersion` (acepta solo si `incoming_version` > `current_version`).
   - Beneficio: se puede sustituir por otras políticas sin cambiar el servicio.
 
 - App Factory + Inyección de dependencias
-  - Archivo: `server/app_factory.py` → `create_app()`.
+  - Archivo: `app/app_factory.py` → `create_app()`.
   - Hace el wiring de `CacheService` + `CacheRepository` + `ConflictResolutionStrategy` y configura la replicación.
-  - `server/main.py` ahora solo crea la app vía la factoría, manteniendo compatibilidad con los tests.
+  - `app/main.py` ahora solo crea la app vía la factoría, manteniendo compatibilidad con los tests.
 
 - Supplier de replicación (facilita tests)
-  - Detalle: `CacheService` recibe un proveedor de la función `replicate_to_others`, que se resuelve desde `server.main`.
-  - Beneficio: los tests pueden hacer `monkeypatch` de `server.main.replicate_to_others` sin acoplar el servicio a una implementación fija ni introducir latencias.
+  - Detalle: `CacheService` recibe un proveedor de la función `replicate_to_others`, que se resuelve desde `app.main`.
+  - Beneficio: los tests pueden hacer `monkeypatch` de `app.main.replicate_to_others` sin acoplar el servicio a una implementación fija ni introducir latencias.
 
 Extensión futura: se pueden añadir nuevas implementaciones de `CacheRepository` (p. ej., Redis), nuevas estrategias de conflicto, o estrategias de replicación (reintentos/backoff).
 
