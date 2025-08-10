@@ -15,7 +15,7 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
 - [Arquitectura del Sistema de Juego Multijugador](#arquitectura-del-sistema-de-juego-multijugador)
   - [Diagrama General de Arquitectura](#diagrama-general-de-arquitectura)
   - [Diagrama de Componentes](#diagrama-de-componentes)
-  - [Sección 1 - Flujo de la Arquitectura](#sección-1---flujo-de-la-arquitectura)
+  - [Sección 1 - Diseño Técnico y Arquitectural](#sección-1---flujo-de-la-arquitectura)
   - [Alta concurrencia y baja latencia](#alta-concurrencia-y-baja-latencia)
   - [Consistencia y fiabilidad de los datos](#consistencia-y-fiabilidad-de-los-datos)
   - [Escalabilidad y tolerancia a fallos](#escalabilidad-y-tolerancia-a-fallos)
@@ -26,7 +26,7 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
   - [Tolerancia a fallos](#tolerancia-a-fallos)
   - [Medidas de seguridad](#medidas-de-seguridad)
 
-- [sección 2](#sección-2)
+- [sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
 - [¿Cómo funciona el caché distribuido?](#cómo-funciona-el-caché-distribuido)
 - [Cómo este proyecto cumple los objetivos](#cómo-este-proyecto-cumple-los-objetivos)
 - [Variables de entorno](#variables-de-entorno)
@@ -196,7 +196,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 
 ---
 
-## Sección 1 - Flujo de la Arquitectura
+## Sección 1 - Diseño Técnico y Arquitectural
 
 1. **Inicio de sesión:** El jugador obtiene su identidad en Cognito.  
 2. **Lista de mundos:** El cliente pide a API Gateway la lista de partidas; Lambda consulta DynamoDB y devuelve la información.  
@@ -300,7 +300,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 - Mínima recolección de datos personales.  
 
 
-## sección 2
+## sección 2 - Desafío de Codificación
 
 ## ¿Cómo funciona el caché distribuido?
 
