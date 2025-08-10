@@ -302,6 +302,34 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 
 ## Sección 2 - Desafío de Codificación
 
+### Patrones de diseño aplicados
+
+- Repository (Repositorio)
+  - Interfaz: `server/domain/repositories.py` → `CacheRepository`.
+  - Implementación: `server/infrastructure/sqlite_repository.py` → `SQLiteCacheRepository`.
+  - Propósito: desacoplar la persistencia de la lógica; permite cambiar SQLite por otra tecnología (p. ej., Redis) sin tocar el servicio o los endpoints.
+
+- Service / Fachada
+  - Archivo: `server/services/cache_service.py` → `CacheService`.
+  - Responsabilidades: TTL y expiración, control de versiones (LWW), acceso al repositorio y disparo de replicación. Mantiene el mapa en memoria (`key -> { value, version, expires_at }`).
+  - Beneficio: los endpoints quedan finos y la lógica de dominio es fácilmente testeable.
+
+- Strategy (Estrategia) para resolución de conflictos
+  - Interfaz: `server/domain/conflict_resolution.py` → `ConflictResolutionStrategy`.
+  - Implementación por defecto: `LastWriterWinsByVersion` (acepta solo si `incoming_version` > `current_version`).
+  - Beneficio: se puede sustituir por otras políticas sin cambiar el servicio.
+
+- App Factory + Inyección de dependencias
+  - Archivo: `server/app_factory.py` → `create_app()`.
+  - Hace el wiring de `CacheService` + `CacheRepository` + `ConflictResolutionStrategy` y configura la replicación.
+  - `server/main.py` ahora solo crea la app vía la factoría, manteniendo compatibilidad con los tests.
+
+- Supplier de replicación (facilita tests)
+  - Detalle: `CacheService` recibe un proveedor de la función `replicate_to_others`, que se resuelve desde `server.main`.
+  - Beneficio: los tests pueden hacer `monkeypatch` de `server.main.replicate_to_others` sin acoplar el servicio a una implementación fija ni introducir latencias.
+
+Extensión futura: se pueden añadir nuevas implementaciones de `CacheRepository` (p. ej., Redis), nuevas estrategias de conflicto, o estrategias de replicación (reintentos/backoff).
+
 ## ¿Cómo funciona el caché distribuido?
 
 ### Memoria + Persistencia (Write-through)
