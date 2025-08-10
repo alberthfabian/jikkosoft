@@ -1,21 +1,9 @@
-# Cache Distribuido con FastAPI, SQLite y Docker
-
-Este proyecto implementa un sistema de caché distribuido, con persistencia local por nodo en SQLite, API HTTP con FastAPI y replicación best-effort entre nodos.
-
-
 ## Índice
 
-- [Tecnologías](#tecnologías)
-- [Estructura](#estructura)
-- [Ejecución local (sin Docker)](#ejecución-local-sin-docker)
-- [Ejecución con Docker (1 nodo)](#ejecución-con-docker-1-nodo)
-- [Ejecución con Docker Compose (clúster de 3 nodos)](#ejecución-con-docker-compose-clúster-de-3-nodos)
-- [Endpoints principales](#endpoints-principales)
-
-- [Sección 1 - Arquitectura del Sistema de Juego Multijugador](#arquitectura-del-sistema-de-juego-multijugador)
+- [Sección 1 - Arquitectura del Sistema de Juego Multijugador](#sección-1---arquitectura-del-sistema-de-juego-multijugador)
   - [Diagrama General de Arquitectura](#diagrama-general-de-arquitectura)
   - [Diagrama de Componentes](#diagrama-de-componentes)
-  - [Diseño Técnico y Arquitectural](#sección-1---flujo-de-la-arquitectura)
+  - [Diseño Técnico y Arquitectural](#diseño-técnico-y-arquitectural)
   - [Alta concurrencia y baja latencia](#alta-concurrencia-y-baja-latencia)
   - [Consistencia y fiabilidad de los datos](#consistencia-y-fiabilidad-de-los-datos)
   - [Escalabilidad y tolerancia a fallos](#escalabilidad-y-tolerancia-a-fallos)
@@ -27,6 +15,13 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
   - [Medidas de seguridad](#medidas-de-seguridad)
 
 - [Sección 2 - Desafío de Codificación](#sección-2---desafío-de-codificación)
+  - [Cache Distribuido con FastAPI, SQLite y Docker](#cache-distribuido-con-fastapi-sqlite-y-docker)
+  - [Tecnologías](#tecnologías)
+  - [Estructura](#estructura)
+  - [Ejecución local (sin Docker)](#ejecución-local-sin-docker)
+  - [Ejecución con Docker (1 nodo)](#ejecución-con-docker-1-nodo)
+  - [Ejecución con Docker Compose (clúster de 3 nodos)](#ejecución-con-docker-compose-clúster-de-3-nodos)
+  - [Endpoints principales](#endpoints-principales)
   - [Patrones de diseño aplicados](#patrones-de-diseño-aplicados)
   - [¿Cómo funciona el caché distribuido?](#cómo-funciona-el-caché-distribuido)
   - [Cómo este proyecto cumple los objetivos](#cómo-este-proyecto-cumple-los-objetivos)
@@ -34,6 +29,115 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
   - [Colección Postman](#colección-postman)
   - [Notas y mejoras posibles](#notas-y-mejoras-posibles)
 
+## Diseño Técnico y Arquitectural
+
+1. **Inicio de sesión:** El jugador obtiene su identidad en Cognito.  
+2. **Lista de mundos:** El cliente pide a API Gateway la lista de partidas; Lambda consulta DynamoDB y devuelve la información.  
+3. **Unirse a una partida:** Otra Lambda revisa que haya espacio y crea la sesión del jugador en GameLift.  
+4. **Conexión en tiempo real:** El cliente se conecta directamente al servidor del juego con los datos recibidos.  
+5. **Juego activo:** GameLift valida y gestiona la partida, guardando información importante en DynamoDB.  
+6. **Mantenimiento:** Un proceso programado revisa partidas activas, inicia o detiene mundos según sea necesario y envía métricas a CloudWatch.  
+
+---
+
+## Alta concurrencia y baja latencia
+
+- **En el borde (Edge):** CloudFront, WAF y Shield reciben las peticiones antes de llegar a la nube. Esto ayuda a manejar miles de conexiones, proteger de ataques y acercar el contenido al jugador.  
+- **Plano de control sin servidores:** Usamos API Gateway y funciones Lambda, que se adaptan automáticamente al número de solicitudes sin necesidad de servidores fijos.  
+- **Tiempo real optimizado:** La comunicación del juego (movimientos, acciones) va directa al servicio GameLift, reduciendo pasos y ganando velocidad.  
+- **Regiones cercanas:** El sistema conecta a cada jugador al servidor más cercano geográficamente para minimizar el retraso.  
+
+---
+
+## Consistencia y fiabilidad de los datos
+
+- DynamoDB con replicación global para que los datos estén disponibles en varias regiones.  
+- Datos críticos manejados con reglas de idempotencia para evitar duplicados o errores.  
+- El estado real lo mantiene GameLift; DynamoDB guarda información de referencia.  
+- Sesiones caducadas se eliminan automáticamente con procesos programados.  
+
+---
+
+## Escalabilidad y tolerancia a fallos
+
+- Diseño horizontal: Lambdas y API Gateway manejan desde pocos hasta miles de jugadores sin cambios manuales.  
+- GameLift y DynamoDB en múltiples zonas de disponibilidad y regiones.  
+- Reintentos automáticos y colas para manejar fallos temporales.  
+- Monitoreo con CloudWatch y X-Ray.  
+
+---
+
+## Seguridad y privacidad
+
+- Amazon Cognito da credenciales temporales con permisos mínimos.  
+- WAF y Shield protegen contra ataques.  
+- Comunicación cifrada y datos almacenados de forma segura.  
+- Servidores aislados en red privada.  
+- Mínima información personal almacenada.  
+
+---
+
+## Stack tecnológico y justificación
+
+- **Cliente:** Unity/Unreal → aceleran el desarrollo, redes integradas y fácil integración cloud.  
+- **Protección y distribución:** CloudFront + WAF + Shield → respuesta rápida, filtrado y mitigación de ataques.  
+- **Autenticación:** Amazon Cognito → identidades seguras sin login propio.  
+- **Gestión de solicitudes:** API Gateway + Lambda → escalables y facturación por uso.  
+- **Juego en tiempo real:** Amazon GameLift → hosting optimizado para juegos con baja latencia.  
+- **Datos:** DynamoDB Global Tables → velocidad y replicación multi-región.  
+- **Automatización y monitoreo:** EventBridge, CloudWatch, X-Ray → tareas programadas y visibilidad del sistema.  
+- **Seguridad:** IAM → permisos mínimos y controlados.  
+
+---
+
+## Estrategia de almacenamiento y gestión de datos
+
+**Tablas lógicas:**
+- **WorldConfiguration:** Configuración fija de cada mundo.  
+- **WorldSessions:** Lista de partidas activas y conectados.  
+- **WorldPlayerData:** Progreso y estadísticas no críticas.  
+
+**Reglas clave:**
+- Validaciones de cupo antes de unir jugadores.  
+- Lecturas rápidas y flexibles para lista de mundos.  
+- Índices por estado y región.  
+- Limpieza automática de partidas viejas.  
+- Cifrado y mínima información personal.  
+
+---
+
+## Mecanismos de escalabilidad
+
+- API Gateway y Lambda se adaptan solos al tráfico.  
+- DynamoDB ajusta capacidad automáticamente.  
+- GameLift escala servidores según demanda.  
+- CloudFront distribuye la carga global.  
+
+---
+
+## Tolerancia a fallos
+
+- Multi-zona y multi-región.  
+- Capacidad de mover jugadores a otra región.  
+- Reintentos automáticos y manejo de errores.  
+- Recuperación automática de estados.  
+
+---
+
+## Medidas de seguridad
+
+- Filtrado de tráfico malicioso (WAF, Shield).  
+- Credenciales temporales (Cognito).  
+- Cifrado y aislamiento de servidores.  
+- Registros y auditorías.  
+- Mínima recolección de datos personales.  
+
+
+# Sección 2 - Desafío de Codificación
+
+# Cache Distribuido con FastAPI, SQLite y Docker
+
+Este proyecto implementa un sistema de caché distribuido, con persistencia local por nodo en SQLite, API HTTP con FastAPI y replicación best-effort entre nodos.
 
 ## Tecnologías
 - FastAPI (API HTTP y validación)
@@ -196,112 +300,6 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 </p>
 
 ---
-
-## Diseño Técnico y Arquitectural
-
-1. **Inicio de sesión:** El jugador obtiene su identidad en Cognito.  
-2. **Lista de mundos:** El cliente pide a API Gateway la lista de partidas; Lambda consulta DynamoDB y devuelve la información.  
-3. **Unirse a una partida:** Otra Lambda revisa que haya espacio y crea la sesión del jugador en GameLift.  
-4. **Conexión en tiempo real:** El cliente se conecta directamente al servidor del juego con los datos recibidos.  
-5. **Juego activo:** GameLift valida y gestiona la partida, guardando información importante en DynamoDB.  
-6. **Mantenimiento:** Un proceso programado revisa partidas activas, inicia o detiene mundos según sea necesario y envía métricas a CloudWatch.  
-
----
-
-## Alta concurrencia y baja latencia
-
-- **En el borde (Edge):** CloudFront, WAF y Shield reciben las peticiones antes de llegar a la nube. Esto ayuda a manejar miles de conexiones, proteger de ataques y acercar el contenido al jugador.  
-- **Plano de control sin servidores:** Usamos API Gateway y funciones Lambda, que se adaptan automáticamente al número de solicitudes sin necesidad de servidores fijos.  
-- **Tiempo real optimizado:** La comunicación del juego (movimientos, acciones) va directa al servicio GameLift, reduciendo pasos y ganando velocidad.  
-- **Regiones cercanas:** El sistema conecta a cada jugador al servidor más cercano geográficamente para minimizar el retraso.  
-
----
-
-## Consistencia y fiabilidad de los datos
-
-- DynamoDB con replicación global para que los datos estén disponibles en varias regiones.  
-- Datos críticos manejados con reglas de idempotencia para evitar duplicados o errores.  
-- El estado real lo mantiene GameLift; DynamoDB guarda información de referencia.  
-- Sesiones caducadas se eliminan automáticamente con procesos programados.  
-
----
-
-## Escalabilidad y tolerancia a fallos
-
-- Diseño horizontal: Lambdas y API Gateway manejan desde pocos hasta miles de jugadores sin cambios manuales.  
-- GameLift y DynamoDB en múltiples zonas de disponibilidad y regiones.  
-- Reintentos automáticos y colas para manejar fallos temporales.  
-- Monitoreo con CloudWatch y X-Ray.  
-
----
-
-## Seguridad y privacidad
-
-- Amazon Cognito da credenciales temporales con permisos mínimos.  
-- WAF y Shield protegen contra ataques.  
-- Comunicación cifrada y datos almacenados de forma segura.  
-- Servidores aislados en red privada.  
-- Mínima información personal almacenada.  
-
----
-
-## Stack tecnológico y justificación
-
-- **Cliente:** Unity/Unreal → aceleran el desarrollo, redes integradas y fácil integración cloud.  
-- **Protección y distribución:** CloudFront + WAF + Shield → respuesta rápida, filtrado y mitigación de ataques.  
-- **Autenticación:** Amazon Cognito → identidades seguras sin login propio.  
-- **Gestión de solicitudes:** API Gateway + Lambda → escalables y facturación por uso.  
-- **Juego en tiempo real:** Amazon GameLift → hosting optimizado para juegos con baja latencia.  
-- **Datos:** DynamoDB Global Tables → velocidad y replicación multi-región.  
-- **Automatización y monitoreo:** EventBridge, CloudWatch, X-Ray → tareas programadas y visibilidad del sistema.  
-- **Seguridad:** IAM → permisos mínimos y controlados.  
-
----
-
-## Estrategia de almacenamiento y gestión de datos
-
-**Tablas lógicas:**
-- **WorldConfiguration:** Configuración fija de cada mundo.  
-- **WorldSessions:** Lista de partidas activas y conectados.  
-- **WorldPlayerData:** Progreso y estadísticas no críticas.  
-
-**Reglas clave:**
-- Validaciones de cupo antes de unir jugadores.  
-- Lecturas rápidas y flexibles para lista de mundos.  
-- Índices por estado y región.  
-- Limpieza automática de partidas viejas.  
-- Cifrado y mínima información personal.  
-
----
-
-## Mecanismos de escalabilidad
-
-- API Gateway y Lambda se adaptan solos al tráfico.  
-- DynamoDB ajusta capacidad automáticamente.  
-- GameLift escala servidores según demanda.  
-- CloudFront distribuye la carga global.  
-
----
-
-## Tolerancia a fallos
-
-- Multi-zona y multi-región.  
-- Capacidad de mover jugadores a otra región.  
-- Reintentos automáticos y manejo de errores.  
-- Recuperación automática de estados.  
-
----
-
-## Medidas de seguridad
-
-- Filtrado de tráfico malicioso (WAF, Shield).  
-- Credenciales temporales (Cognito).  
-- Cifrado y aislamiento de servidores.  
-- Registros y auditorías.  
-- Mínima recolección de datos personales.  
-
-
-# Sección 2 - Desafío de Codificación
 
 ### Patrones de diseño aplicados
 
