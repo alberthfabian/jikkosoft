@@ -61,3 +61,6 @@ dist/
 # Secrets (si llegaran a existir)
 .env
 .env.*
+
+data/**
+!data/.gitkeep
