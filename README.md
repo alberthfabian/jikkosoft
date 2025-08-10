@@ -300,7 +300,7 @@ curl -X DELETE "http://localhost:8001/cache/k1"
 - Mínima recolección de datos personales.  
 
 
-## sección 2 - Desafío de Codificación
+## Sección 2 - Desafío de Codificación
 
 ## ¿Cómo funciona el caché distribuido?
 
