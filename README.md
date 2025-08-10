@@ -164,11 +164,16 @@ Este proyecto implementa un sistema de caché distribuido, con persistencia loca
 - Pytest (tests)
 
 ## Estructura
-- `server/main.py`: Endpoints y lógica de negocio (memoria + TTL + versionado + replicación)
-- `server/persistence.py`: Acceso a SQLite (creación de tabla, guardar, cargar, borrar)
-- `server/config.py`: Configuración (variables de entorno, rutas internas, path DB)
-- `server/utils/replication.py`: Replicación HTTP a otros nodos
-- `server/schemas/cache_item.py`: Modelo de entrada para items del caché
+- `server/app_factory.py`: Factoría de la app (`create_app`) y definición de endpoints. Hace el wiring de `CacheService` + `CacheRepository` + `ConflictResolutionStrategy` y configura la replicación.
+- `server/main.py`: Punto de entrada. Crea la app vía la factoría y reexporta `replicate_to_others` para facilitar tests (monkeypatch).
+- `server/services/cache_service.py`: Servicio de dominio. TTL/expiración, versionado (LWW), cache en memoria y disparo de replicación.
+- `server/infrastructure/sqlite_repository.py`: Implementación de `CacheRepository` usando SQLite (guardar/cargar/borrar, parseo de fechas).
+- `server/domain/repositories.py`: Interfaces de repositorios (p. ej., `CacheRepository`).
+- `server/domain/conflict_resolution.py`: Estrategia de resolución de conflictos (por defecto `LastWriterWinsByVersion`).
+- `server/utils/replication.py`: Replicación HTTP asíncrona a otros nodos, con `X-Internal-Token` y autoexclusión por URL propia.
+- `server/persistence.py`: Inicialización de la base (`init_db`) y utilidades de acceso directo (helpers) a SQLite.
+- `server/config.py`: Configuración (variables de entorno, rutas internas, path de la base de datos).
+- `server/schemas/cache_item.py`: Modelo Pydantic de entrada para ítems del caché.
 - `docker-compose.yml`: Define 3 nodos del clúster
 - `Dockerfile`: Imagen base Python 3.11 con app y dependencias
 - `postman/cache-demo-collection.json`: Colección para probar
